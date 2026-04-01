@@ -43,9 +43,6 @@ const calcTicketMedio = (venda: number, nf: number) => {
   return venda / nf
 }
 
-const getVariationClass = (value: number) =>
-  value >= 0 ? 'text-green-400' : 'text-red-400'
-
 const ComparativoVenda = () => {
   const [lojaSelecionada, setLojaSelecionada] = useState('Todas')
   const [data1Inicio, setData1Inicio] = useState('2026-03-01')
@@ -157,64 +154,59 @@ const ComparativoVenda = () => {
     return comparativoPorDepartamentoBase[lojaSelecionada] || comparativoPorDepartamentoBase.Todas
   }, [lojaSelecionada])
 
-  const resumo = useMemo(() => {
-    const base = lojaSelecionada === 'Todas' ? comparativoPorLoja : lojasFiltradas
+  const graficoLojas = useMemo(() => {
+    return lojasFiltradas.map((item) => ({
+      nome: item.nome,
+      venda1: item.vendaPeriodo1,
+      venda2: item.vendaPeriodo2,
+      nf1: item.nfPeriodo1,
+      nf2: item.nfPeriodo2,
+      ticket1: calcTicketMedio(item.vendaPeriodo1, item.nfPeriodo1),
+      ticket2: calcTicketMedio(item.vendaPeriodo2, item.nfPeriodo2),
+    }))
+  }, [lojasFiltradas])
 
-    const vendaPeriodo1 = base.reduce((acc, item) => acc + item.vendaPeriodo1, 0)
-    const vendaPeriodo2 = base.reduce((acc, item) => acc + item.vendaPeriodo2, 0)
-    const nfPeriodo1 = base.reduce((acc, item) => acc + item.nfPeriodo1, 0)
-    const nfPeriodo2 = base.reduce((acc, item) => acc + item.nfPeriodo2, 0)
+  const graficoDepartamentos = useMemo(() => {
+    return departamentos.map((item) => ({
+      nome: item.nome,
+      valor1: item.vendaPeriodo1,
+      valor2: item.vendaPeriodo2,
+    }))
+  }, [departamentos])
 
-    const ticketPeriodo1 = calcTicketMedio(vendaPeriodo1, nfPeriodo1)
-    const ticketPeriodo2 = calcTicketMedio(vendaPeriodo2, nfPeriodo2)
-
-    return {
-      vendaPeriodo1,
-      vendaPeriodo2,
-      nfPeriodo1,
-      nfPeriodo2,
-      ticketPeriodo1,
-      ticketPeriodo2,
-      diferencaVenda: vendaPeriodo2 - vendaPeriodo1,
-      diferencaNf: nfPeriodo2 - nfPeriodo1,
-      diferencaTicket: ticketPeriodo2 - ticketPeriodo1,
-      variacaoVenda: calcVariacao(vendaPeriodo2, vendaPeriodo1),
-      variacaoNf: calcVariacao(nfPeriodo2, nfPeriodo1),
-      variacaoTicket: calcVariacao(ticketPeriodo2, ticketPeriodo1),
-    }
-  }, [lojaSelecionada, lojasFiltradas])
-
-  const maiorVendaDepartamento = Math.max(
-    ...departamentos.flatMap((item) => [item.vendaPeriodo1, item.vendaPeriodo2])
-  )
-
-  const maiorNfLoja = Math.max(
-    ...lojasFiltradas.flatMap((item) => [item.nfPeriodo1, item.nfPeriodo2])
-  )
+  const maxVenda = Math.max(...graficoLojas.flatMap((item) => [item.venda1, item.venda2]), 1)
+  const maxNf = Math.max(...graficoLojas.flatMap((item) => [item.nf1, item.nf2]), 1)
+  const maxTicket = Math.max(...graficoLojas.flatMap((item) => [item.ticket1, item.ticket2]), 1)
+  const maxDepartamento = Math.max(...graficoDepartamentos.flatMap((item) => [item.valor1, item.valor2]), 1)
 
   return (
-    <div className="h-screen bg-primary text-textPrimary px-4 py-3 md:px-6 md:py-4 pl-16 overflow-y-auto">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2 mb-5">
-          <span className="text-xs uppercase tracking-[0.25em] text-textSecondary">
-            Análise comparativa
-          </span>
-          <h1 className="text-2xl md:text-4xl font-bold tracking-wide">
-            COMPARATIVO DE VENDA, TICKET MÉDIO E QT. NF
-          </h1>
-          <p className="text-sm text-textSecondary">
-            Visão consolidada dos dois períodos com detalhamento por loja e departamento.
-          </p>
+    <div className="h-screen bg-primary text-textPrimary px-4 py-3 md:px-6 md:py-4 overflow-hidden pl-16">
+      <div className="max-w-7xl mx-auto h-full flex flex-col">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold tracking-wide">
+              COMPARATIVO GERAL
+            </h1>
+            <p className="text-sm text-textSecondary mt-1">
+              Gráficos de venda, ticket médio, quantidade de NF e departamento
+            </p>
+          </div>
+
+          <div className="hidden xl:flex items-center gap-2 text-xs text-textSecondary">
+            <span>{data1Inicio} até {data1Fim}</span>
+            <span className="text-white/30">vs</span>
+            <span>{data2Inicio} até {data2Fim}</span>
+          </div>
         </div>
 
-        <div className="bg-secondary rounded-2xl p-4 md:p-5 border border-white/10 mb-4 shadow-lg">
+        <div className="bg-secondary rounded-2xl p-3 border border-white/10 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
             <div className="flex flex-col gap-2">
               <label className="text-xs text-textSecondary">Loja</label>
               <select
                 value={lojaSelecionada}
                 onChange={(e) => setLojaSelecionada(e.target.value)}
-                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2.5 outline-none text-sm"
+                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               >
                 <option value="Todas">Todas as lojas</option>
                 {comparativoPorLoja.map((loja) => (
@@ -231,7 +223,7 @@ const ComparativoVenda = () => {
                 type="date"
                 value={data1Inicio}
                 onChange={(e) => setData1Inicio(e.target.value)}
-                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2.5 outline-none text-sm"
+                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               />
             </div>
 
@@ -241,7 +233,7 @@ const ComparativoVenda = () => {
                 type="date"
                 value={data1Fim}
                 onChange={(e) => setData1Fim(e.target.value)}
-                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2.5 outline-none text-sm"
+                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               />
             </div>
 
@@ -251,7 +243,7 @@ const ComparativoVenda = () => {
                 type="date"
                 value={data2Inicio}
                 onChange={(e) => setData2Inicio(e.target.value)}
-                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2.5 outline-none text-sm"
+                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               />
             </div>
 
@@ -261,132 +253,49 @@ const ComparativoVenda = () => {
                 type="date"
                 value={data2Fim}
                 onChange={(e) => setData2Fim(e.target.value)}
-                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2.5 outline-none text-sm"
+                className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
-          <div className="bg-secondary rounded-2xl p-4 border border-white/10 shadow-lg">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-textSecondary text-xs uppercase tracking-wider">Venda</p>
-                <h2 className="text-2xl font-bold mt-1">{formatMoney(resumo.vendaPeriodo2)}</h2>
-                <p className="text-xs text-textSecondary mt-2">
-                  Período 1: {formatMoney(resumo.vendaPeriodo1)}
-                </p>
-              </div>
-              <div className={`text-right ${getVariationClass(resumo.variacaoVenda)}`}>
-                <p className="text-lg font-bold">{formatPercent(resumo.variacaoVenda)}</p>
-                <p className="text-xs">
-                  {resumo.diferencaVenda >= 0 ? '+' : ''}
-                  {formatMoney(resumo.diferencaVenda)}
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
+          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Venda</h2>
 
-          <div className="bg-secondary rounded-2xl p-4 border border-white/10 shadow-lg">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-textSecondary text-xs uppercase tracking-wider">Ticket Médio</p>
-                <h2 className="text-2xl font-bold mt-1">{formatMoney(resumo.ticketPeriodo2)}</h2>
-                <p className="text-xs text-textSecondary mt-2">
-                  Período 1: {formatMoney(resumo.ticketPeriodo1)}
-                </p>
-              </div>
-              <div className={`text-right ${getVariationClass(resumo.variacaoTicket)}`}>
-                <p className="text-lg font-bold">{formatPercent(resumo.variacaoTicket)}</p>
-                <p className="text-xs">
-                  {resumo.diferencaTicket >= 0 ? '+' : ''}
-                  {formatMoney(resumo.diferencaTicket)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-secondary rounded-2xl p-4 border border-white/10 shadow-lg">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-textSecondary text-xs uppercase tracking-wider">Qt. NF</p>
-                <h2 className="text-2xl font-bold mt-1">{formatNumber(resumo.nfPeriodo2)}</h2>
-                <p className="text-xs text-textSecondary mt-2">
-                  Período 1: {formatNumber(resumo.nfPeriodo1)}
-                </p>
-              </div>
-              <div className={`text-right ${getVariationClass(resumo.variacaoNf)}`}>
-                <p className="text-lg font-bold">{formatPercent(resumo.variacaoNf)}</p>
-                <p className="text-xs">
-                  {resumo.diferencaNf >= 0 ? '+' : ''}
-                  {formatNumber(resumo.diferencaNf)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
-          <div className="bg-secondary rounded-2xl p-4 border border-white/10">
-            <div className="flex items-center justify-between mb-4 gap-3">
-              <h2 className="text-lg font-semibold">Venda por Departamento</h2>
-              <span className="text-xs text-textSecondary">
-                {lojaSelecionada === 'Todas' ? 'Todas as lojas' : lojaSelecionada}
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {departamentos.map((item) => {
-                const variacaoVenda = calcVariacao(item.vendaPeriodo2, item.vendaPeriodo1)
-                const largura1 = (item.vendaPeriodo1 / maiorVendaDepartamento) * 100
-                const largura2 = (item.vendaPeriodo2 / maiorVendaDepartamento) * 100
+            <div className="space-y-2 overflow-y-auto pr-1">
+              {graficoLojas.map((item) => {
+                const pct1 = (item.venda1 / maxVenda) * 100
+                const pct2 = (item.venda2 / maxVenda) * 100
+                const variacao = calcVariacao(item.venda2, item.venda1)
 
                 return (
-                  <div key={item.nome} className="bg-primary/40 rounded-xl p-3">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <span className="font-medium text-sm">{item.nome}</span>
-                      <span className={`text-xs font-semibold ${getVariationClass(variacaoVenda)}`}>
-                        {formatPercent(variacaoVenda)}
+                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
+                    <div className="flex justify-between items-center gap-3 mb-2">
+                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
+                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatPercent(variacao)}
                       </span>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div>
-                        <div className="flex items-center justify-between text-[11px] text-textSecondary mb-1">
-                          <span>Período 1</span>
-                          <span>{formatMoney(item.vendaPeriodo1)}</span>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P1</span>
+                          <span>{formatMoney(item.venda1)}</span>
                         </div>
-                        <div className="w-full h-2 bg-hover rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-white/50 rounded-full"
-                            style={{ width: `${largura1}%` }}
-                          />
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
                         </div>
                       </div>
 
                       <div>
-                        <div className="flex items-center justify-between text-[11px] text-textSecondary mb-1">
-                          <span>Período 2</span>
-                          <span>{formatMoney(item.vendaPeriodo2)}</span>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P2</span>
+                          <span>{formatMoney(item.venda2)}</span>
                         </div>
-                        <div className="w-full h-2 bg-hover rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-accent rounded-full"
-                            style={{ width: `${largura2}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 pt-2">
-                        <div className="bg-hover/60 rounded-lg px-2 py-2">
-                          <p className="text-[10px] text-textSecondary">Ticket P2</p>
-                          <p className="text-sm font-semibold">
-                            {formatMoney(calcTicketMedio(item.vendaPeriodo2, item.nfPeriodo2))}
-                          </p>
-                        </div>
-                        <div className="bg-hover/60 rounded-lg px-2 py-2">
-                          <p className="text-[10px] text-textSecondary">NF P2</p>
-                          <p className="text-sm font-semibold">{formatNumber(item.nfPeriodo2)}</p>
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
                         </div>
                       </div>
                     </div>
@@ -396,58 +305,42 @@ const ComparativoVenda = () => {
             </div>
           </div>
 
-          <div className="bg-secondary rounded-2xl p-4 border border-white/10">
-            <div className="flex items-center justify-between mb-4 gap-3">
-              <h2 className="text-lg font-semibold">Qt. NF por Loja</h2>
-              <span className="text-xs text-textSecondary">Período 1 x Período 2</span>
-            </div>
+          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Ticket Médio</h2>
 
-            <div className="space-y-3">
-              {lojasFiltradas.map((item) => {
-                const variacaoNf = calcVariacao(item.nfPeriodo2, item.nfPeriodo1)
-                const ticket1 = calcTicketMedio(item.vendaPeriodo1, item.nfPeriodo1)
-                const ticket2 = calcTicketMedio(item.vendaPeriodo2, item.nfPeriodo2)
-                const largura1 = maiorNfLoja ? (item.nfPeriodo1 / maiorNfLoja) * 100 : 0
-                const largura2 = maiorNfLoja ? (item.nfPeriodo2 / maiorNfLoja) * 100 : 0
+            <div className="space-y-2 overflow-y-auto pr-1">
+              {graficoLojas.map((item) => {
+                const pct1 = (item.ticket1 / maxTicket) * 100
+                const pct2 = (item.ticket2 / maxTicket) * 100
+                const variacao = calcVariacao(item.ticket2, item.ticket1)
 
                 return (
-                  <div key={item.nome} className="bg-primary/40 rounded-xl p-3">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <span className="font-medium text-sm">{item.nome}</span>
-                      <div className="text-right">
-                        <p className={`text-xs font-semibold ${getVariationClass(variacaoNf)}`}>
-                          {formatPercent(variacaoNf)}
-                        </p>
-                        <p className="text-[11px] text-textSecondary">
-                          Ticket: {formatMoney(ticket1)} → {formatMoney(ticket2)}
-                        </p>
-                      </div>
+                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
+                    <div className="flex justify-between items-center gap-3 mb-2">
+                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
+                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatPercent(variacao)}
+                      </span>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div>
-                        <div className="flex items-center justify-between text-[11px] text-textSecondary mb-1">
-                          <span>Período 1</span>
-                          <span>{formatNumber(item.nfPeriodo1)} NF</span>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P1</span>
+                          <span>{formatMoney(item.ticket1)}</span>
                         </div>
-                        <div className="w-full h-2 bg-hover rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-white/50 rounded-full"
-                            style={{ width: `${largura1}%` }}
-                          />
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
                         </div>
                       </div>
 
                       <div>
-                        <div className="flex items-center justify-between text-[11px] text-textSecondary mb-1">
-                          <span>Período 2</span>
-                          <span>{formatNumber(item.nfPeriodo2)} NF</span>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P2</span>
+                          <span>{formatMoney(item.ticket2)}</span>
                         </div>
-                        <div className="w-full h-2 bg-hover rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-accent rounded-full"
-                            style={{ width: `${largura2}%` }}
-                          />
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
                         </div>
                       </div>
                     </div>
@@ -456,88 +349,108 @@ const ComparativoVenda = () => {
               })}
             </div>
           </div>
-        </div>
 
-        <div className="bg-secondary rounded-2xl p-4 border border-white/10 mb-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-semibold">Tabela Comparativa Completa</h2>
-            <span className="text-xs text-textSecondary">
-              Venda, Ticket Médio e Quantidade de NF
-            </span>
+          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Qt. NF</h2>
+
+            <div className="space-y-2 overflow-y-auto pr-1">
+              {graficoLojas.map((item) => {
+                const pct1 = (item.nf1 / maxNf) * 100
+                const pct2 = (item.nf2 / maxNf) * 100
+                const variacao = calcVariacao(item.nf2, item.nf1)
+
+                return (
+                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
+                    <div className="flex justify-between items-center gap-3 mb-2">
+                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
+                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatPercent(variacao)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P1</span>
+                          <span>{formatNumber(item.nf1)}</span>
+                        </div>
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
+                          <span>P2</span>
+                          <span>{formatNumber(item.nf2)}</span>
+                        </div>
+                        <div className="w-full bg-hover rounded-full h-2">
+                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-textSecondary">
-                  <th className="text-left py-3 pr-4 font-medium">Departamento</th>
-                  <th className="text-right py-3 px-3 font-medium">Venda P1</th>
-                  <th className="text-right py-3 px-3 font-medium">Venda P2</th>
-                  <th className="text-right py-3 px-3 font-medium">Var. Venda</th>
-                  <th className="text-right py-3 px-3 font-medium">NF P1</th>
-                  <th className="text-right py-3 px-3 font-medium">NF P2</th>
-                  <th className="text-right py-3 px-3 font-medium">Var. NF</th>
-                  <th className="text-right py-3 px-3 font-medium">Ticket P1</th>
-                  <th className="text-right py-3 px-3 font-medium">Ticket P2</th>
-                  <th className="text-right py-3 pl-3 font-medium">Var. Ticket</th>
-                </tr>
-              </thead>
+          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-2 gap-3">
+              <h2 className="text-textSecondary text-sm">
+                Comparativo por Departamento
+              </h2>
+              <span className="text-[11px] text-textSecondary">
+                {lojaSelecionada}
+              </span>
+            </div>
 
-              <tbody>
-                {departamentos.map((item) => {
-                  const variacaoVenda = calcVariacao(item.vendaPeriodo2, item.vendaPeriodo1)
-                  const variacaoNf = calcVariacao(item.nfPeriodo2, item.nfPeriodo1)
-                  const ticket1 = calcTicketMedio(item.vendaPeriodo1, item.nfPeriodo1)
-                  const ticket2 = calcTicketMedio(item.vendaPeriodo2, item.nfPeriodo2)
-                  const variacaoTicket = calcVariacao(ticket2, ticket1)
+            <div className="flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex items-end gap-3 h-full min-w-[620px]">
+                {graficoDepartamentos.map((dep) => {
+                  const altura1 = (dep.valor1 / maxDepartamento) * 150
+                  const altura2 = (dep.valor2 / maxDepartamento) * 150
+                  const variacao = calcVariacao(dep.valor2, dep.valor1)
 
                   return (
-                    <tr key={item.nome} className="border-b border-white/5">
-                      <td className="py-3 pr-4 text-textPrimary">{item.nome}</td>
+                    <div
+                      key={dep.nome}
+                      className="flex flex-col items-center justify-end h-full min-w-[72px]"
+                    >
+                      <div className={`text-[10px] mb-1 font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatPercent(variacao)}
+                      </div>
 
-                      <td className="py-3 px-3 text-right">{formatMoney(item.vendaPeriodo1)}</td>
-                      <td className="py-3 px-3 text-right">{formatMoney(item.vendaPeriodo2)}</td>
-                      <td className={`py-3 px-3 text-right font-medium ${getVariationClass(variacaoVenda)}`}>
-                        {formatPercent(variacaoVenda)}
-                      </td>
+                      <div className="flex items-end gap-1 h-[170px]">
+                        <div className="flex flex-col items-center justify-end">
+                          <div className="text-[9px] text-textSecondary mb-1">
+                            P1
+                          </div>
+                          <div
+                            className="w-4 rounded-t-md bg-white/60"
+                            style={{ height: `${altura1}px` }}
+                          />
+                        </div>
 
-                      <td className="py-3 px-3 text-right">{formatNumber(item.nfPeriodo1)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(item.nfPeriodo2)}</td>
-                      <td className={`py-3 px-3 text-right font-medium ${getVariationClass(variacaoNf)}`}>
-                        {formatPercent(variacaoNf)}
-                      </td>
+                        <div className="flex flex-col items-center justify-end">
+                          <div className="text-[9px] text-textSecondary mb-1">
+                            P2
+                          </div>
+                          <div
+                            className="w-4 rounded-t-md bg-accent"
+                            style={{ height: `${altura2}px` }}
+                          />
+                        </div>
+                      </div>
 
-                      <td className="py-3 px-3 text-right">{formatMoney(ticket1)}</td>
-                      <td className="py-3 px-3 text-right">{formatMoney(ticket2)}</td>
-                      <td className={`py-3 pl-3 text-right font-medium ${getVariationClass(variacaoTicket)}`}>
-                        {formatPercent(variacaoTicket)}
-                      </td>
-                    </tr>
+                      <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
+                        {dep.nome}
+                      </div>
+                    </div>
                   )
                 })}
-              </tbody>
-
-              <tfoot>
-                <tr className="border-t border-white/10 font-semibold">
-                  <td className="py-4 pr-4">TOTAL</td>
-                  <td className="py-4 px-3 text-right">{formatMoney(resumo.vendaPeriodo1)}</td>
-                  <td className="py-4 px-3 text-right">{formatMoney(resumo.vendaPeriodo2)}</td>
-                  <td className={`py-4 px-3 text-right ${getVariationClass(resumo.variacaoVenda)}`}>
-                    {formatPercent(resumo.variacaoVenda)}
-                  </td>
-                  <td className="py-4 px-3 text-right">{formatNumber(resumo.nfPeriodo1)}</td>
-                  <td className="py-4 px-3 text-right">{formatNumber(resumo.nfPeriodo2)}</td>
-                  <td className={`py-4 px-3 text-right ${getVariationClass(resumo.variacaoNf)}`}>
-                    {formatPercent(resumo.variacaoNf)}
-                  </td>
-                  <td className="py-4 px-3 text-right">{formatMoney(resumo.ticketPeriodo1)}</td>
-                  <td className="py-4 px-3 text-right">{formatMoney(resumo.ticketPeriodo2)}</td>
-                  <td className={`py-4 pl-3 text-right ${getVariationClass(resumo.variacaoTicket)}`}>
-                    {formatPercent(resumo.variacaoTicket)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
