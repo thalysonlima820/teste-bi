@@ -43,6 +43,169 @@ const calcTicketMedio = (venda: number, nf: number) => {
   return venda / nf
 }
 
+type CardComparativoProps = {
+  titulo: string
+  subtitulo: string
+  dados: {
+    nome: string
+    valor1: number
+    valor2: number
+  }[]
+  maxValor: number
+  formatadorValor?: (value: number) => string
+}
+
+function CardComparativoBarras({
+  titulo,
+  subtitulo,
+  dados,
+  maxValor,
+  formatadorValor,
+}: CardComparativoProps) {
+  return (
+    <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+      <div className="flex items-center justify-between mb-2 gap-3">
+        <h2 className="text-textSecondary text-sm">{titulo}</h2>
+        <span className="text-[11px] text-textSecondary">{subtitulo}</span>
+      </div>
+
+      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex items-end gap-3 h-full min-w-[620px]">
+          {dados.map((item) => {
+            const altura1 = (item.valor1 / maxValor) * 150
+            const altura2 = (item.valor2 / maxValor) * 150
+            const variacao = calcVariacao(item.valor2, item.valor1)
+
+            return (
+              <div
+                key={item.nome}
+                className="flex flex-col items-center justify-end h-full min-w-[72px]"
+                title={
+                  formatadorValor
+                    ? `P1: ${formatadorValor(item.valor1)} | P2: ${formatadorValor(item.valor2)}`
+                    : undefined
+                }
+              >
+                <div
+                  className={`text-[10px] mb-1 font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}
+                >
+                  {formatPercent(variacao)}
+                </div>
+
+                <div className="flex items-end gap-1 h-[170px]">
+                  <div className="flex flex-col items-center justify-end">
+                    <div className="text-[9px] text-textSecondary mb-1">P1</div>
+                    <div
+                      className="w-4 rounded-t-md bg-white/60 transition-all"
+                      style={{ height: `${altura1}px` }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-center justify-end">
+                    <div className="text-[9px] text-textSecondary mb-1">P2</div>
+                    <div
+                      className="w-4 rounded-t-md bg-accent transition-all"
+                      style={{ height: `${altura2}px` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
+                  {item.nome}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type CardComparativoHorizontalProps = {
+  titulo: string
+  subtitulo: string
+  dados: {
+    nome: string
+    valor1: number
+    valor2: number
+  }[]
+  maxValor: number
+  formatadorValor?: (value: number) => string
+}
+
+function CardComparativoHorizontal({
+  titulo,
+  subtitulo,
+  dados,
+  maxValor,
+  formatadorValor,
+}: CardComparativoHorizontalProps) {
+  return (
+    <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
+      <div className="flex items-center justify-between mb-2 gap-3">
+        <h2 className="text-textSecondary text-sm">{titulo}</h2>
+        <span className="text-[11px] text-textSecondary">{subtitulo}</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+        {dados.map((item) => {
+          const pct1 = (item.valor1 / maxValor) * 100
+          const pct2 = (item.valor2 / maxValor) * 100
+          const variacao = calcVariacao(item.valor2, item.valor1)
+
+          return (
+            <div key={item.nome} className="bg-primary/35 rounded-xl p-2">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="truncate">{item.nome}</span>
+                <span
+                  className={`font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}
+                >
+                  {formatPercent(variacao)}
+                </span>
+              </div>
+
+              {/* P1 */}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] w-6 text-textSecondary">P1</span>
+                <div className="flex-1 bg-hover rounded-full h-2">
+                  <div
+                    className="bg-white/60 h-2 rounded-full"
+                    style={{ width: `${pct1}%` }}
+                  />
+                </div>
+                {formatadorValor && (
+                  <span className="text-[10px] w-16 text-right">
+                    {formatadorValor(item.valor1)}
+                  </span>
+                )}
+              </div>
+
+              {/* P2 */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] w-6 text-textSecondary">P2</span>
+                <div className="flex-1 bg-hover rounded-full h-2">
+                  <div
+                    className="bg-accent h-2 rounded-full"
+                    style={{ width: `${pct2}%` }}
+                  />
+                </div>
+                {formatadorValor && (
+                  <span className="text-[10px] w-16 text-right">
+                    {formatadorValor(item.valor2)}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 const ComparativoVenda = () => {
   const [lojaSelecionada, setLojaSelecionada] = useState('Todas')
   const [data1Inicio, setData1Inicio] = useState('2026-03-01')
@@ -151,7 +314,10 @@ const ComparativoVenda = () => {
   }, [lojaSelecionada])
 
   const departamentos = useMemo(() => {
-    return comparativoPorDepartamentoBase[lojaSelecionada] || comparativoPorDepartamentoBase.Todas
+    return (
+      comparativoPorDepartamentoBase[lojaSelecionada] ||
+      comparativoPorDepartamentoBase.Todas
+    )
   }, [lojaSelecionada])
 
   const graficoLojas = useMemo(() => {
@@ -174,10 +340,45 @@ const ComparativoVenda = () => {
     }))
   }, [departamentos])
 
-  const maxVenda = Math.max(...graficoLojas.flatMap((item) => [item.venda1, item.venda2]), 1)
-  const maxNf = Math.max(...graficoLojas.flatMap((item) => [item.nf1, item.nf2]), 1)
-  const maxTicket = Math.max(...graficoLojas.flatMap((item) => [item.ticket1, item.ticket2]), 1)
-  const maxDepartamento = Math.max(...graficoDepartamentos.flatMap((item) => [item.valor1, item.valor2]), 1)
+  const dadosVenda = useMemo(
+    () =>
+      graficoLojas.map((item) => ({
+        nome: item.nome,
+        valor1: item.venda1,
+        valor2: item.venda2,
+      })),
+    [graficoLojas]
+  )
+
+  const dadosTicket = useMemo(
+    () =>
+      graficoLojas.map((item) => ({
+        nome: item.nome,
+        valor1: item.ticket1,
+        valor2: item.ticket2,
+      })),
+    [graficoLojas]
+  )
+
+  const dadosNf = useMemo(
+    () =>
+      graficoLojas.map((item) => ({
+        nome: item.nome,
+        valor1: item.nf1,
+        valor2: item.nf2,
+      })),
+    [graficoLojas]
+  )
+
+
+
+  const maxVenda = Math.max(...dadosVenda.flatMap((item) => [item.valor1, item.valor2]), 1)
+  const maxTicket = Math.max(...dadosTicket.flatMap((item) => [item.valor1, item.valor2]), 1)
+  const maxNf = Math.max(...dadosNf.flatMap((item) => [item.valor1, item.valor2]), 1)
+  const maxDepartamento = Math.max(
+    ...graficoDepartamentos.flatMap((item) => [item.valor1, item.valor2]),
+    1
+  )
 
   return (
     <div className="h-screen bg-primary text-textPrimary px-4 py-3 md:px-6 md:py-4 overflow-hidden pl-16">
@@ -260,198 +461,37 @@ const ComparativoVenda = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
-          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
-            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Venda</h2>
+          <CardComparativoHorizontal
+            titulo="Comparativo de Venda"
+            subtitulo={lojaSelecionada}
+            dados={dadosVenda}
+            maxValor={maxVenda}
+            formatadorValor={formatMoney}
+          />
 
-            <div className="space-y-2 overflow-y-auto pr-1">
-              {graficoLojas.map((item) => {
-                const pct1 = (item.venda1 / maxVenda) * 100
-                const pct2 = (item.venda2 / maxVenda) * 100
-                const variacao = calcVariacao(item.venda2, item.venda1)
+          <CardComparativoBarras
+            titulo="Comparativo de Ticket Médio"
+            subtitulo={lojaSelecionada}
+            dados={dadosTicket}
+            maxValor={maxTicket}
+            formatadorValor={formatMoney}
+          />
 
-                return (
-                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
-                    <div className="flex justify-between items-center gap-3 mb-2">
-                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
-                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatPercent(variacao)}
-                      </span>
-                    </div>
+          <CardComparativoBarras
+            titulo="Comparativo de Qt. NF"
+            subtitulo={lojaSelecionada}
+            dados={dadosNf}
+            maxValor={maxNf}
+            formatadorValor={formatNumber}
+          />
 
-                    <div className="space-y-1.5">
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P1</span>
-                          <span>{formatMoney(item.venda1)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P2</span>
-                          <span>{formatMoney(item.venda2)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
-            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Ticket Médio</h2>
-
-            <div className="space-y-2 overflow-y-auto pr-1">
-              {graficoLojas.map((item) => {
-                const pct1 = (item.ticket1 / maxTicket) * 100
-                const pct2 = (item.ticket2 / maxTicket) * 100
-                const variacao = calcVariacao(item.ticket2, item.ticket1)
-
-                return (
-                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
-                    <div className="flex justify-between items-center gap-3 mb-2">
-                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
-                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatPercent(variacao)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P1</span>
-                          <span>{formatMoney(item.ticket1)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P2</span>
-                          <span>{formatMoney(item.ticket2)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
-            <h2 className="text-textSecondary text-sm mb-2">Comparativo de Qt. NF</h2>
-
-            <div className="space-y-2 overflow-y-auto pr-1">
-              {graficoLojas.map((item) => {
-                const pct1 = (item.nf1 / maxNf) * 100
-                const pct2 = (item.nf2 / maxNf) * 100
-                const variacao = calcVariacao(item.nf2, item.nf1)
-
-                return (
-                  <div key={item.nome} className="bg-primary/35 rounded-xl p-2.5">
-                    <div className="flex justify-between items-center gap-3 mb-2">
-                      <span className="text-xs text-textPrimary truncate">{item.nome}</span>
-                      <span className={`text-[11px] font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatPercent(variacao)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P1</span>
-                          <span>{formatNumber(item.nf1)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-white/60 h-2 rounded-full" style={{ width: `${pct1}%` }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[10px] text-textSecondary mb-1">
-                          <span>P2</span>
-                          <span>{formatNumber(item.nf2)}</span>
-                        </div>
-                        <div className="w-full bg-hover rounded-full h-2">
-                          <div className="bg-accent h-2 rounded-full" style={{ width: `${pct2}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
-            <div className="flex items-center justify-between mb-2 gap-3">
-              <h2 className="text-textSecondary text-sm">
-                Comparativo por Departamento
-              </h2>
-              <span className="text-[11px] text-textSecondary">
-                {lojaSelecionada}
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-x-auto overflow-y-hidden">
-              <div className="flex items-end gap-3 h-full min-w-[620px]">
-                {graficoDepartamentos.map((dep) => {
-                  const altura1 = (dep.valor1 / maxDepartamento) * 150
-                  const altura2 = (dep.valor2 / maxDepartamento) * 150
-                  const variacao = calcVariacao(dep.valor2, dep.valor1)
-
-                  return (
-                    <div
-                      key={dep.nome}
-                      className="flex flex-col items-center justify-end h-full min-w-[72px]"
-                    >
-                      <div className={`text-[10px] mb-1 font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatPercent(variacao)}
-                      </div>
-
-                      <div className="flex items-end gap-1 h-[170px]">
-                        <div className="flex flex-col items-center justify-end">
-                          <div className="text-[9px] text-textSecondary mb-1">
-                            P1
-                          </div>
-                          <div
-                            className="w-4 rounded-t-md bg-white/60"
-                            style={{ height: `${altura1}px` }}
-                          />
-                        </div>
-
-                        <div className="flex flex-col items-center justify-end">
-                          <div className="text-[9px] text-textSecondary mb-1">
-                            P2
-                          </div>
-                          <div
-                            className="w-4 rounded-t-md bg-accent"
-                            style={{ height: `${altura2}px` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
-                        {dep.nome}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+          <CardComparativoBarras
+            titulo="Comparativo por Departamento"
+            subtitulo={lojaSelecionada}
+            dados={graficoDepartamentos}
+            maxValor={maxDepartamento}
+            formatadorValor={formatMoney}
+          />
         </div>
       </div>
     </div>
