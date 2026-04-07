@@ -1,20 +1,6 @@
-import { useMemo, useState } from 'react'
-
-type DepartamentoComparativo = {
-  nome: string
-  vendaPeriodo1: number
-  vendaPeriodo2: number
-  nfPeriodo1: number
-  nfPeriodo2: number
-}
-
-type LojaComparativo = {
-  nome: string
-  vendaPeriodo1: number
-  vendaPeriodo2: number
-  nfPeriodo1: number
-  nfPeriodo2: number
-}
+import { useEffect, useMemo, useState } from 'react'
+import { useHttpvenda } from '../hooks/useHttpvenda'
+import type { GetVendaMesAtual } from '../interface/GetVendaMesAtual'
 
 const formatMoney = (value: number) =>
   value.toLocaleString('pt-BR', {
@@ -72,8 +58,8 @@ function CardComparativoBarras({
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex items-end gap-3 h-full min-w-[620px]">
           {dados.map((item) => {
-            const altura1 = (item.valor1 / maxValor) * 150
-            const altura2 = (item.valor2 / maxValor) * 150
+            const altura1 = maxValor > 0 ? (item.valor1 / maxValor) * 150 : 0
+            const altura2 = maxValor > 0 ? (item.valor2 / maxValor) * 150 : 0
             const variacao = calcVariacao(item.valor2, item.valor1)
 
             return (
@@ -87,8 +73,9 @@ function CardComparativoBarras({
                 }
               >
                 <div
-                  className={`text-[10px] mb-1 font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}
+                  className={`text-[10px] mb-1 font-semibold ${
+                    variacao >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
                 >
                   {formatPercent(variacao)}
                 </div>
@@ -123,25 +110,13 @@ function CardComparativoBarras({
   )
 }
 
-type CardComparativoHorizontalProps = {
-  titulo: string
-  subtitulo: string
-  dados: {
-    nome: string
-    valor1: number
-    valor2: number
-  }[]
-  maxValor: number
-  formatadorValor?: (value: number) => string
-}
-
 function CardComparativoHorizontal({
   titulo,
   subtitulo,
   dados,
   maxValor,
   formatadorValor,
-}: CardComparativoHorizontalProps) {
+}: CardComparativoProps) {
   return (
     <div className="bg-secondary p-3 rounded-2xl flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-2 gap-3">
@@ -151,8 +126,8 @@ function CardComparativoHorizontal({
 
       <div className="flex-1 overflow-y-auto pr-1 space-y-2">
         {dados.map((item) => {
-          const pct1 = (item.valor1 / maxValor) * 100
-          const pct2 = (item.valor2 / maxValor) * 100
+          const pct1 = maxValor > 0 ? (item.valor1 / maxValor) * 100 : 0
+          const pct2 = maxValor > 0 ? (item.valor2 / maxValor) * 100 : 0
           const variacao = calcVariacao(item.valor2, item.valor1)
 
           return (
@@ -160,14 +135,14 @@ function CardComparativoHorizontal({
               <div className="flex justify-between text-xs mb-1">
                 <span className="truncate">{item.nome}</span>
                 <span
-                  className={`font-semibold ${variacao >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}
+                  className={`font-semibold ${
+                    variacao >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
                 >
                   {formatPercent(variacao)}
                 </span>
               </div>
 
-              {/* P1 */}
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] w-6 text-textSecondary">P1</span>
                 <div className="flex-1 bg-hover rounded-full h-2">
@@ -183,7 +158,6 @@ function CardComparativoHorizontal({
                 )}
               </div>
 
-              {/* P2 */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] w-6 text-textSecondary">P2</span>
                 <div className="flex-1 bg-hover rounded-full h-2">
@@ -206,6 +180,54 @@ function CardComparativoHorizontal({
   )
 }
 
+const agruparPorFilial = (dados: GetVendaMesAtual[]) => {
+  const mapa = new Map<
+    string,
+    { nome: string; venda: number; nf: number }
+  >()
+
+  dados.forEach((item) => {
+    const chave = item.CODFILIAL
+    const atual = mapa.get(chave) || {
+      nome: `Filial ${item.CODFILIAL}`,
+      venda: 0,
+      nf: 0,
+    }
+
+    atual.venda += Number(item.VENDA || 0)
+    atual.nf += Number(item.NUMVENDAS || 0)
+
+    mapa.set(chave, atual)
+  })
+
+  return Array.from(mapa.values()).sort((a, b) => b.venda - a.venda)
+}
+
+const agruparPorDepartamento = (dados: GetVendaMesAtual[], filial?: string) => {
+  const mapa = new Map<
+    string,
+    { nome: string; valor: number }
+  >()
+
+  dados
+    .filter((item) => {
+      if (!filial || filial === 'Todas') return true
+      return item.CODFILIAL === filial
+    })
+    .forEach((item) => {
+      const chave = item.DEPARTAMENTO || 'Sem departamento'
+      const atual = mapa.get(chave) || {
+        nome: chave,
+        valor: 0,
+      }
+
+      atual.valor += Number(item.VENDA || 0)
+      mapa.set(chave, atual)
+    })
+
+  return Array.from(mapa.values()).sort((a, b) => b.valor - a.valor)
+}
+
 const ComparativoVenda = () => {
   const [lojaSelecionada, setLojaSelecionada] = useState('Todas')
   const [data1Inicio, setData1Inicio] = useState('2026-03-01')
@@ -213,164 +235,173 @@ const ComparativoVenda = () => {
   const [data2Inicio, setData2Inicio] = useState('2026-03-16')
   const [data2Fim, setData2Fim] = useState('2026-03-31')
 
-  const comparativoPorLoja: LojaComparativo[] = [
-    { nome: 'Loja Centro', vendaPeriodo1: 420000, vendaPeriodo2: 455000, nfPeriodo1: 8450, nfPeriodo2: 9020 },
-    { nome: 'Loja Norte', vendaPeriodo1: 315000, vendaPeriodo2: 298000, nfPeriodo1: 7010, nfPeriodo2: 6740 },
-    { nome: 'Loja Sul', vendaPeriodo1: 280000, vendaPeriodo2: 301000, nfPeriodo1: 6120, nfPeriodo2: 6550 },
-    { nome: 'Loja Leste', vendaPeriodo1: 260000, vendaPeriodo2: 272000, nfPeriodo1: 5750, nfPeriodo2: 5960 },
-    { nome: 'Loja Oeste', vendaPeriodo1: 230000, vendaPeriodo2: 219000, nfPeriodo1: 5200, nfPeriodo2: 4930 },
-    { nome: 'Loja Shopping', vendaPeriodo1: 390000, vendaPeriodo2: 421000, nfPeriodo1: 7880, nfPeriodo2: 8360 },
-    { nome: 'Loja Atacado', vendaPeriodo1: 510000, vendaPeriodo2: 548000, nfPeriodo1: 6400, nfPeriodo2: 6810 },
-    { nome: 'Loja Filial 8', vendaPeriodo1: 205000, vendaPeriodo2: 214000, nfPeriodo1: 4680, nfPeriodo2: 4890 },
-  ]
+  const periodo1 = useHttpvenda()
+  const periodo2 = useHttpvenda()
 
-  const comparativoPorDepartamentoBase: Record<string, DepartamentoComparativo[]> = {
-    Todas: [
-      { nome: 'Mercearia', vendaPeriodo1: 390000, vendaPeriodo2: 420000, nfPeriodo1: 7600, nfPeriodo2: 8120 },
-      { nome: 'Açougue', vendaPeriodo1: 280000, vendaPeriodo2: 301000, nfPeriodo1: 4300, nfPeriodo2: 4560 },
-      { nome: 'Hortifruti', vendaPeriodo1: 190000, vendaPeriodo2: 205000, nfPeriodo1: 3950, nfPeriodo2: 4180 },
-      { nome: 'Padaria', vendaPeriodo1: 240000, vendaPeriodo2: 258000, nfPeriodo1: 6100, nfPeriodo2: 6450 },
-      { nome: 'Bebidas', vendaPeriodo1: 170000, vendaPeriodo2: 189000, nfPeriodo1: 2800, nfPeriodo2: 3010 },
-      { nome: 'Limpeza', vendaPeriodo1: 130000, vendaPeriodo2: 136000, nfPeriodo1: 2400, nfPeriodo2: 2490 },
-      { nome: 'Perfumaria', vendaPeriodo1: 118000, vendaPeriodo2: 121000, nfPeriodo1: 2050, nfPeriodo2: 2110 },
-    ],
-    'Loja Centro': [
-      { nome: 'Mercearia', vendaPeriodo1: 82000, vendaPeriodo2: 90000, nfPeriodo1: 1620, nfPeriodo2: 1750 },
-      { nome: 'Açougue', vendaPeriodo1: 61000, vendaPeriodo2: 65500, nfPeriodo1: 930, nfPeriodo2: 980 },
-      { nome: 'Hortifruti', vendaPeriodo1: 39000, vendaPeriodo2: 41000, nfPeriodo1: 820, nfPeriodo2: 860 },
-      { nome: 'Padaria', vendaPeriodo1: 54000, vendaPeriodo2: 58500, nfPeriodo1: 1450, nfPeriodo2: 1520 },
-      { nome: 'Bebidas', vendaPeriodo1: 47000, vendaPeriodo2: 52000, nfPeriodo1: 720, nfPeriodo2: 790 },
-      { nome: 'Limpeza', vendaPeriodo1: 24000, vendaPeriodo2: 25500, nfPeriodo1: 480, nfPeriodo2: 510 },
-      { nome: 'Perfumaria', vendaPeriodo1: 21000, vendaPeriodo2: 22500, nfPeriodo1: 390, nfPeriodo2: 420 },
-    ],
-    'Loja Norte': [
-      { nome: 'Mercearia', vendaPeriodo1: 65000, vendaPeriodo2: 62000, nfPeriodo1: 1450, nfPeriodo2: 1370 },
-      { nome: 'Açougue', vendaPeriodo1: 49000, vendaPeriodo2: 46000, nfPeriodo1: 800, nfPeriodo2: 740 },
-      { nome: 'Hortifruti', vendaPeriodo1: 31000, vendaPeriodo2: 29500, nfPeriodo1: 680, nfPeriodo2: 640 },
-      { nome: 'Padaria', vendaPeriodo1: 43000, vendaPeriodo2: 41500, nfPeriodo1: 1210, nfPeriodo2: 1150 },
-      { nome: 'Bebidas', vendaPeriodo1: 38000, vendaPeriodo2: 35000, nfPeriodo1: 620, nfPeriodo2: 580 },
-      { nome: 'Limpeza', vendaPeriodo1: 22000, vendaPeriodo2: 21000, nfPeriodo1: 430, nfPeriodo2: 400 },
-      { nome: 'Perfumaria', vendaPeriodo1: 17000, vendaPeriodo2: 16500, nfPeriodo1: 320, nfPeriodo2: 300 },
-    ],
-    'Loja Sul': [
-      { nome: 'Mercearia', vendaPeriodo1: 58000, vendaPeriodo2: 62500, nfPeriodo1: 1260, nfPeriodo2: 1340 },
-      { nome: 'Açougue', vendaPeriodo1: 45000, vendaPeriodo2: 47500, nfPeriodo1: 740, nfPeriodo2: 780 },
-      { nome: 'Hortifruti', vendaPeriodo1: 29000, vendaPeriodo2: 32000, nfPeriodo1: 620, nfPeriodo2: 680 },
-      { nome: 'Padaria', vendaPeriodo1: 39000, vendaPeriodo2: 42000, nfPeriodo1: 1080, nfPeriodo2: 1160 },
-      { nome: 'Bebidas', vendaPeriodo1: 34000, vendaPeriodo2: 36000, nfPeriodo1: 560, nfPeriodo2: 590 },
-      { nome: 'Limpeza', vendaPeriodo1: 19500, vendaPeriodo2: 20500, nfPeriodo1: 390, nfPeriodo2: 405 },
-      { nome: 'Perfumaria', vendaPeriodo1: 14500, vendaPeriodo2: 16000, nfPeriodo1: 280, nfPeriodo2: 305 },
-    ],
-    'Loja Leste': [
-      { nome: 'Mercearia', vendaPeriodo1: 54000, vendaPeriodo2: 56500, nfPeriodo1: 1180, nfPeriodo2: 1220 },
-      { nome: 'Açougue', vendaPeriodo1: 41000, vendaPeriodo2: 42500, nfPeriodo1: 690, nfPeriodo2: 710 },
-      { nome: 'Hortifruti', vendaPeriodo1: 28000, vendaPeriodo2: 29500, nfPeriodo1: 600, nfPeriodo2: 620 },
-      { nome: 'Padaria', vendaPeriodo1: 37000, vendaPeriodo2: 39000, nfPeriodo1: 1010, nfPeriodo2: 1050 },
-      { nome: 'Bebidas', vendaPeriodo1: 31500, vendaPeriodo2: 33000, nfPeriodo1: 530, nfPeriodo2: 545 },
-      { nome: 'Limpeza', vendaPeriodo1: 18000, vendaPeriodo2: 18800, nfPeriodo1: 360, nfPeriodo2: 372 },
-      { nome: 'Perfumaria', vendaPeriodo1: 13500, vendaPeriodo2: 14700, nfPeriodo1: 260, nfPeriodo2: 280 },
-    ],
-    'Loja Oeste': [
-      { nome: 'Mercearia', vendaPeriodo1: 48000, vendaPeriodo2: 45500, nfPeriodo1: 1110, nfPeriodo2: 1030 },
-      { nome: 'Açougue', vendaPeriodo1: 36000, vendaPeriodo2: 34500, nfPeriodo1: 620, nfPeriodo2: 590 },
-      { nome: 'Hortifruti', vendaPeriodo1: 25000, vendaPeriodo2: 23500, nfPeriodo1: 560, nfPeriodo2: 520 },
-      { nome: 'Padaria', vendaPeriodo1: 33000, vendaPeriodo2: 32000, nfPeriodo1: 950, nfPeriodo2: 900 },
-      { nome: 'Bebidas', vendaPeriodo1: 30000, vendaPeriodo2: 28600, nfPeriodo1: 500, nfPeriodo2: 470 },
-      { nome: 'Limpeza', vendaPeriodo1: 16500, vendaPeriodo2: 15800, nfPeriodo1: 340, nfPeriodo2: 320 },
-      { nome: 'Perfumaria', vendaPeriodo1: 11500, vendaPeriodo2: 11100, nfPeriodo1: 230, nfPeriodo2: 215 },
-    ],
-    'Loja Shopping': [
-      { nome: 'Mercearia', vendaPeriodo1: 76000, vendaPeriodo2: 81000, nfPeriodo1: 1500, nfPeriodo2: 1580 },
-      { nome: 'Açougue', vendaPeriodo1: 55000, vendaPeriodo2: 58500, nfPeriodo1: 880, nfPeriodo2: 920 },
-      { nome: 'Hortifruti', vendaPeriodo1: 36000, vendaPeriodo2: 38200, nfPeriodo1: 740, nfPeriodo2: 780 },
-      { nome: 'Padaria', vendaPeriodo1: 51000, vendaPeriodo2: 54500, nfPeriodo1: 1380, nfPeriodo2: 1450 },
-      { nome: 'Bebidas', vendaPeriodo1: 46000, vendaPeriodo2: 49800, nfPeriodo1: 700, nfPeriodo2: 760 },
-      { nome: 'Limpeza', vendaPeriodo1: 23000, vendaPeriodo2: 24200, nfPeriodo1: 450, nfPeriodo2: 470 },
-      { nome: 'Perfumaria', vendaPeriodo1: 19000, vendaPeriodo2: 20800, nfPeriodo1: 360, nfPeriodo2: 390 },
-    ],
-    'Loja Atacado': [
-      { nome: 'Mercearia', vendaPeriodo1: 98000, vendaPeriodo2: 106000, nfPeriodo1: 1250, nfPeriodo2: 1320 },
-      { nome: 'Açougue', vendaPeriodo1: 71000, vendaPeriodo2: 77000, nfPeriodo1: 920, nfPeriodo2: 980 },
-      { nome: 'Hortifruti', vendaPeriodo1: 42000, vendaPeriodo2: 44800, nfPeriodo1: 570, nfPeriodo2: 600 },
-      { nome: 'Padaria', vendaPeriodo1: 47000, vendaPeriodo2: 49300, nfPeriodo1: 900, nfPeriodo2: 940 },
-      { nome: 'Bebidas', vendaPeriodo1: 64000, vendaPeriodo2: 70000, nfPeriodo1: 770, nfPeriodo2: 830 },
-      { nome: 'Limpeza', vendaPeriodo1: 30000, vendaPeriodo2: 31500, nfPeriodo1: 410, nfPeriodo2: 430 },
-      { nome: 'Perfumaria', vendaPeriodo1: 18000, vendaPeriodo2: 19100, nfPeriodo1: 230, nfPeriodo2: 250 },
-    ],
-    'Loja Filial 8': [
-      { nome: 'Mercearia', vendaPeriodo1: 45000, vendaPeriodo2: 47000, nfPeriodo1: 1230, nfPeriodo2: 1290 },
-      { nome: 'Açougue', vendaPeriodo1: 33000, vendaPeriodo2: 35000, nfPeriodo1: 720, nfPeriodo2: 760 },
-      { nome: 'Hortifruti', vendaPeriodo1: 20000, vendaPeriodo2: 21500, nfPeriodo1: 520, nfPeriodo2: 560 },
-      { nome: 'Padaria', vendaPeriodo1: 26000, vendaPeriodo2: 27800, nfPeriodo1: 850, nfPeriodo2: 900 },
-      { nome: 'Bebidas', vendaPeriodo1: 24500, vendaPeriodo2: 25800, nfPeriodo1: 420, nfPeriodo2: 450 },
-      { nome: 'Limpeza', vendaPeriodo1: 14500, vendaPeriodo2: 15100, nfPeriodo1: 310, nfPeriodo2: 325 },
-      { nome: 'Perfumaria', vendaPeriodo1: 11500, vendaPeriodo2: 12800, nfPeriodo1: 210, nfPeriodo2: 235 },
-    ],
-  }
+  useEffect(() => {
+    if (data1Inicio && data1Fim) {
+      periodo1.getVendaData(data1Inicio, data1Fim)
+    }
+  }, [data1Inicio, data1Fim])
 
-  const lojasFiltradas = useMemo(() => {
-    if (lojaSelecionada === 'Todas') return comparativoPorLoja
-    return comparativoPorLoja.filter((item) => item.nome === lojaSelecionada)
-  }, [lojaSelecionada])
+  useEffect(() => {
+    if (data2Inicio && data2Fim) {
+      periodo2.getVendaData(data2Inicio, data2Fim)
+    }
+  }, [data2Inicio, data2Fim])
 
-  const departamentos = useMemo(() => {
-    return (
-      comparativoPorDepartamentoBase[lojaSelecionada] ||
-      comparativoPorDepartamentoBase.Todas
-    )
-  }, [lojaSelecionada])
+  const loading = periodo1.loading || periodo2.loading
 
-  const graficoLojas = useMemo(() => {
-    return lojasFiltradas.map((item) => ({
-      nome: item.nome,
-      venda1: item.vendaPeriodo1,
-      venda2: item.vendaPeriodo2,
-      nf1: item.nfPeriodo1,
-      nf2: item.nfPeriodo2,
-      ticket1: calcTicketMedio(item.vendaPeriodo1, item.nfPeriodo1),
-      ticket2: calcTicketMedio(item.vendaPeriodo2, item.nfPeriodo2),
+  const lojasPeriodo1 = useMemo(() => agruparPorFilial(periodo1.data), [periodo1.data])
+  const lojasPeriodo2 = useMemo(() => agruparPorFilial(periodo2.data), [periodo2.data])
+
+  const opcoesLoja = useMemo(() => {
+    const mapa = new Map<string, string>()
+
+    lojasPeriodo1.forEach((item) => mapa.set(item.nome.replace('Filial ', ''), item.nome))
+    lojasPeriodo2.forEach((item) => mapa.set(item.nome.replace('Filial ', ''), item.nome))
+
+    return Array.from(mapa.entries()).map(([value, label]) => ({
+      value,
+      label,
     }))
-  }, [lojasFiltradas])
+  }, [lojasPeriodo1, lojasPeriodo2])
+
+  const dadosVenda = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { nome: string; valor1: number; valor2: number }
+    >()
+
+    lojasPeriodo1.forEach((item) => {
+      mapa.set(item.nome, {
+        nome: item.nome,
+        valor1: item.venda,
+        valor2: 0,
+      })
+    })
+
+    lojasPeriodo2.forEach((item) => {
+      const atual = mapa.get(item.nome) || {
+        nome: item.nome,
+        valor1: 0,
+        valor2: 0,
+      }
+
+      atual.valor2 = item.venda
+      mapa.set(item.nome, atual)
+    })
+
+    let lista = Array.from(mapa.values()).sort((a, b) => b.valor2 - a.valor2)
+
+    if (lojaSelecionada !== 'Todas') {
+      lista = lista.filter((item) => item.nome === `Filial ${lojaSelecionada}`)
+    }
+
+    return lista
+  }, [lojasPeriodo1, lojasPeriodo2, lojaSelecionada])
+
+  const dadosNf = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { nome: string; valor1: number; valor2: number }
+    >()
+
+    lojasPeriodo1.forEach((item) => {
+      mapa.set(item.nome, {
+        nome: item.nome,
+        valor1: item.nf,
+        valor2: 0,
+      })
+    })
+
+    lojasPeriodo2.forEach((item) => {
+      const atual = mapa.get(item.nome) || {
+        nome: item.nome,
+        valor1: 0,
+        valor2: 0,
+      }
+
+      atual.valor2 = item.nf
+      mapa.set(item.nome, atual)
+    })
+
+    let lista = Array.from(mapa.values()).sort((a, b) => b.valor2 - a.valor2)
+
+    if (lojaSelecionada !== 'Todas') {
+      lista = lista.filter((item) => item.nome === `Filial ${lojaSelecionada}`)
+    }
+
+    return lista
+  }, [lojasPeriodo1, lojasPeriodo2, lojaSelecionada])
+
+  const dadosTicket = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { nome: string; valor1: number; valor2: number }
+    >()
+
+    const nomes = new Set([
+      ...lojasPeriodo1.map((item) => item.nome),
+      ...lojasPeriodo2.map((item) => item.nome),
+    ])
+
+    nomes.forEach((nome) => {
+      const p1 = lojasPeriodo1.find((item) => item.nome === nome)
+      const p2 = lojasPeriodo2.find((item) => item.nome === nome)
+
+      mapa.set(nome, {
+        nome,
+        valor1: calcTicketMedio(p1?.venda || 0, p1?.nf || 0),
+        valor2: calcTicketMedio(p2?.venda || 0, p2?.nf || 0),
+      })
+    })
+
+    let lista = Array.from(mapa.values()).sort((a, b) => b.valor2 - a.valor2)
+
+    if (lojaSelecionada !== 'Todas') {
+      lista = lista.filter((item) => item.nome === `Filial ${lojaSelecionada}`)
+    }
+
+    return lista
+  }, [lojasPeriodo1, lojasPeriodo2, lojaSelecionada])
 
   const graficoDepartamentos = useMemo(() => {
-    return departamentos.map((item) => ({
-      nome: item.nome,
-      valor1: item.vendaPeriodo1,
-      valor2: item.vendaPeriodo2,
-    }))
-  }, [departamentos])
+    const dep1 = agruparPorDepartamento(
+      periodo1.data,
+      lojaSelecionada === 'Todas' ? undefined : lojaSelecionada
+    )
+    const dep2 = agruparPorDepartamento(
+      periodo2.data,
+      lojaSelecionada === 'Todas' ? undefined : lojaSelecionada
+    )
 
-  const dadosVenda = useMemo(
-    () =>
-      graficoLojas.map((item) => ({
+    const mapa = new Map<
+      string,
+      { nome: string; valor1: number; valor2: number }
+    >()
+
+    dep1.forEach((item) => {
+      mapa.set(item.nome, {
         nome: item.nome,
-        valor1: item.venda1,
-        valor2: item.venda2,
-      })),
-    [graficoLojas]
-  )
+        valor1: item.valor,
+        valor2: 0,
+      })
+    })
 
-  const dadosTicket = useMemo(
-    () =>
-      graficoLojas.map((item) => ({
+    dep2.forEach((item) => {
+      const atual = mapa.get(item.nome) || {
         nome: item.nome,
-        valor1: item.ticket1,
-        valor2: item.ticket2,
-      })),
-    [graficoLojas]
-  )
+        valor1: 0,
+        valor2: 0,
+      }
 
-  const dadosNf = useMemo(
-    () =>
-      graficoLojas.map((item) => ({
-        nome: item.nome,
-        valor1: item.nf1,
-        valor2: item.nf2,
-      })),
-    [graficoLojas]
-  )
+      atual.valor2 = item.valor
+      mapa.set(item.nome, atual)
+    })
 
-
+    return Array.from(mapa.values()).sort((a, b) => b.valor2 - a.valor2)
+  }, [periodo1.data, periodo2.data, lojaSelecionada])
 
   const maxVenda = Math.max(...dadosVenda.flatMap((item) => [item.valor1, item.valor2]), 1)
   const maxTicket = Math.max(...dadosTicket.flatMap((item) => [item.valor1, item.valor2]), 1)
@@ -410,9 +441,9 @@ const ComparativoVenda = () => {
                 className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               >
                 <option value="Todas">Todas as lojas</option>
-                {comparativoPorLoja.map((loja) => (
-                  <option key={loja.nome} value={loja.nome}>
-                    {loja.nome}
+                {opcoesLoja.map((loja) => (
+                  <option key={loja.value} value={loja.value}>
+                    {loja.label}
                   </option>
                 ))}
               </select>
@@ -463,7 +494,7 @@ const ComparativoVenda = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
           <CardComparativoHorizontal
             titulo="Comparativo de Venda"
-            subtitulo={lojaSelecionada}
+            subtitulo={lojaSelecionada === 'Todas' ? 'Todas as lojas' : `Filial ${lojaSelecionada}`}
             dados={dadosVenda}
             maxValor={maxVenda}
             formatadorValor={formatMoney}
@@ -471,7 +502,7 @@ const ComparativoVenda = () => {
 
           <CardComparativoBarras
             titulo="Comparativo de Ticket Médio"
-            subtitulo={lojaSelecionada}
+            subtitulo={lojaSelecionada === 'Todas' ? 'Todas as lojas' : `Filial ${lojaSelecionada}`}
             dados={dadosTicket}
             maxValor={maxTicket}
             formatadorValor={formatMoney}
@@ -479,7 +510,7 @@ const ComparativoVenda = () => {
 
           <CardComparativoBarras
             titulo="Comparativo de Qt. NF"
-            subtitulo={lojaSelecionada}
+            subtitulo={lojaSelecionada === 'Todas' ? 'Todas as lojas' : `Filial ${lojaSelecionada}`}
             dados={dadosNf}
             maxValor={maxNf}
             formatadorValor={formatNumber}
@@ -487,12 +518,18 @@ const ComparativoVenda = () => {
 
           <CardComparativoBarras
             titulo="Comparativo por Departamento"
-            subtitulo={lojaSelecionada}
+            subtitulo={lojaSelecionada === 'Todas' ? 'Todas as lojas' : `Filial ${lojaSelecionada}`}
             dados={graficoDepartamentos}
             maxValor={maxDepartamento}
             formatadorValor={formatMoney}
           />
         </div>
+
+        {loading && (
+          <div className="mt-3 text-sm text-textSecondary">
+            Carregando dados...
+          </div>
+        )}
       </div>
     </div>
   )
