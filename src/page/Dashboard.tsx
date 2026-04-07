@@ -1,5 +1,5 @@
-
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useHttpvenda } from '../hooks/useHttpvenda'
 
 type CardProps = {
   title: string
@@ -11,7 +11,12 @@ type Departamento = {
   valor: number
 }
 
-type LojaData = Record<string, Departamento[]>
+type LojaItem = {
+  loja: string
+  valor: number
+  meta: number
+  percentualCarregado: number
+}
 
 function Card({ title, value }: CardProps) {
   return (
@@ -23,107 +28,132 @@ function Card({ title, value }: CardProps) {
 }
 
 function Dashboard() {
-  const [lojaSelecionada, setLojaSelecionada] = useState<string>('Loja Centro')
+  const { data, loading, getVenda } = useHttpvenda()
+  const [lojaSelecionada, setLojaSelecionada] = useState<any>('')
 
-  const departamentosPorLoja: LojaData = {
-    'Loja Centro': [
-      { nome: 'Mercearia', valor: 160 },
-      { nome: 'Açougue', valor: 130 },
-      { nome: 'Hortifruti', valor: 110 },
-      { nome: 'Padaria', valor: 145 },
-      { nome: 'Bebidas', valor: 95 },
-      { nome: 'Limpeza', valor: 85 },
-      { nome: 'Perfumaria', valor: 90 },
-    ],
-    'Loja Norte': [
-      { nome: 'Mercearia', valor: 150 },
-      { nome: 'Açougue', valor: 120 },
-      { nome: 'Hortifruti', valor: 100 },
-      { nome: 'Padaria', valor: 140 },
-      { nome: 'Bebidas', valor: 105 },
-      { nome: 'Limpeza', valor: 88 },
-      { nome: 'Perfumaria', valor: 80 },
-    ],
-    'Loja Sul': [
-      { nome: 'Mercearia', valor: 140 },
-      { nome: 'Açougue', valor: 115 },
-      { nome: 'Hortifruti', valor: 98 },
-      { nome: 'Padaria', valor: 130 },
-      { nome: 'Bebidas', valor: 100 },
-      { nome: 'Limpeza', valor: 78 },
-      { nome: 'Perfumaria', valor: 82 },
-    ],
-    'Loja Leste': [
-      { nome: 'Mercearia', valor: 145 },
-      { nome: 'Açougue', valor: 118 },
-      { nome: 'Hortifruti', valor: 104 },
-      { nome: 'Padaria', valor: 132 },
-      { nome: 'Bebidas', valor: 96 },
-      { nome: 'Limpeza', valor: 74 },
-      { nome: 'Perfumaria', valor: 79 },
-    ],
-    'Loja Oeste': [
-      { nome: 'Mercearia', valor: 135 },
-      { nome: 'Açougue', valor: 108 },
-      { nome: 'Hortifruti', valor: 92 },
-      { nome: 'Padaria', valor: 125 },
-      { nome: 'Bebidas', valor: 90 },
-      { nome: 'Limpeza', valor: 70 },
-      { nome: 'Perfumaria', valor: 75 },
-    ],
-    'Loja Shopping': [
-      { nome: 'Mercearia', valor: 170 },
-      { nome: 'Açougue', valor: 126 },
-      { nome: 'Hortifruti', valor: 108 },
-      { nome: 'Padaria', valor: 150 },
-      { nome: 'Bebidas', valor: 115 },
-      { nome: 'Limpeza', valor: 84 },
-      { nome: 'Perfumaria', valor: 97 },
-    ],
-    'Loja Atacado': [
-      { nome: 'Mercearia', valor: 180 },
-      { nome: 'Açougue', valor: 140 },
-      { nome: 'Hortifruti', valor: 112 },
-      { nome: 'Padaria', valor: 135 },
-      { nome: 'Bebidas', valor: 120 },
-      { nome: 'Limpeza', valor: 92 },
-      { nome: 'Perfumaria', valor: 86 },
-    ],
-    'Loja Filial 8': [
-      { nome: 'Mercearia', valor: 138 },
-      { nome: 'Açougue', valor: 111 },
-      { nome: 'Hortifruti', valor: 94 },
-      { nome: 'Padaria', valor: 120 },
-      { nome: 'Bebidas', valor: 88 },
-      { nome: 'Limpeza', valor: 72 },
-      { nome: 'Perfumaria', valor: 76 },
-    ],
+  useEffect(() => {
+    getVenda()
+  }, [])
+
+  const formatMoney = (value: number) =>
+    value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 2,
+    })
+
+  const formatNumber = (value: number) =>
+    value.toLocaleString('pt-BR', {
+      maximumFractionDigits: 0,
+    })
+
+  const formatPercent = (value: number) =>
+    `${value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}%`
+
+  const filiais = useMemo<string[]>(() => {
+    return [...new Set(data.map((item) => item.CODFILIAL))].sort()
+  }, [data])
+
+useEffect(() => {
+  if (filiais.length > 0 && !lojaSelecionada) {
+    setLojaSelecionada(filiais[0])
   }
+}, [filiais, lojaSelecionada])
 
-  const vendasPorLoja = [
-    { loja: 'Loja Centro', valor: 90 },
-    { loja: 'Loja Norte', valor: 75 },
-    { loja: 'Loja Sul', valor: 65 },
-    { loja: 'Loja Leste', valor: 55 },
-    { loja: 'Loja Oeste', valor: 45 },
-    { loja: 'Loja Shopping', valor: 70 },
-    { loja: 'Loja Atacado', valor: 80 },
-    { loja: 'Loja Filial 8', valor: 60 },
-  ]
+  const resumo = useMemo(() => {
+    const totalVenda = data.reduce((acc, item) => acc + Number(item.VENDA || 0), 0)
+    const totalCusto = data.reduce((acc, item) => acc + Number(item.CUSTO || 0), 0)
+    const totalLucro = data.reduce((acc, item) => acc + Number(item.LUCRO || 0), 0)
+    const totalNumVendas = data.reduce((acc, item) => acc + Number(item.NUMVENDAS || 0), 0)
 
-  const departamentosGerais: Departamento[] = [
-    { nome: 'Mercearia', valor: 160 },
-    { nome: 'Açougue', valor: 130 },
-    { nome: 'Hortifruti', valor: 110 },
-    { nome: 'Padaria', valor: 145 },
-    { nome: 'Bebidas', valor: 95 },
-    { nome: 'Limpeza', valor: 85 },
-    { nome: 'Perfumaria', valor: 90 },
-  ]
+    const mapaMetaPorFilial = new Map<string, number>()
+    data.forEach((item) => {
+      const filial = item.CODFILIAL
+      const metaAtual = mapaMetaPorFilial.get(filial) || 0
+      if (metaAtual === 0) {
+        mapaMetaPorFilial.set(filial, Number(item.META || 0))
+      }
+    })
 
-  const departamentos = useMemo<Departamento[]>(() => {
-    return departamentosPorLoja[lojaSelecionada] || []
-  }, [lojaSelecionada])
+    const totalMeta = Array.from(mapaMetaPorFilial.values()).reduce((acc, value) => acc + value, 0)
+
+    const ticketMedio = totalNumVendas > 0 ? totalVenda / totalNumVendas : 0
+    const margem = totalVenda > 0 ? (totalLucro / totalVenda) * 100 : 0
+    const percentualMeta = totalMeta > 0 ? (totalVenda / totalMeta) * 100 : 0
+
+    return {
+      totalVenda,
+      totalCusto,
+      totalLucro,
+      totalNumVendas,
+      totalMeta,
+      ticketMedio,
+      margem,
+      percentualMeta,
+    }
+  }, [data])
+
+  const vendasPorLoja = useMemo<LojaItem[]>(() => {
+    const mapa = new Map<string, LojaItem>()
+
+    data.forEach((item) => {
+      const filial = item.CODFILIAL
+      const atual = mapa.get(filial) || {
+        loja: filial,
+        valor: 0,
+        meta: Number(item.META || 0),
+        percentualCarregado: 0,
+      }
+
+      atual.valor += Number(item.VENDA || 0)
+      atual.meta = Number(item.META || atual.meta || 0)
+      atual.percentualCarregado =
+        atual.meta > 0 ? (atual.valor / atual.meta) * 100 : 0
+
+      mapa.set(filial, atual)
+    })
+
+    return Array.from(mapa.values()).sort((a, b) => b.valor - a.valor)
+  }, [data])
+
+  const departamentosGerais = useMemo<Departamento[]>(() => {
+    const mapa = new Map<string, number>()
+
+    data.forEach((item) => {
+      const nome = item.DEPARTAMENTO || 'Sem departamento'
+      mapa.set(nome, (mapa.get(nome) || 0) + Number(item.VENDA || 0))
+    })
+
+    return Array.from(mapa.entries())
+      .map(([nome, valor]) => ({ nome, valor }))
+      .sort((a, b) => b.valor - a.valor)
+  }, [data])
+
+  const departamentosLoja = useMemo<Departamento[]>(() => {
+    const mapa = new Map<string, number>()
+
+    data
+      .filter((item) => item.CODFILIAL === lojaSelecionada)
+      .forEach((item) => {
+        const nome = item.DEPARTAMENTO || 'Sem departamento'
+        mapa.set(nome, (mapa.get(nome) || 0) + Number(item.VENDA || 0))
+      })
+
+    return Array.from(mapa.entries())
+      .map(([nome, valor]) => ({ nome, valor }))
+      .sort((a, b) => b.valor - a.valor)
+  }, [data, lojaSelecionada])
+
+  const maiorVendaLoja = Math.max(...vendasPorLoja.map((item) => item.valor), 0)
+  const maiorVendaDepartamentoGeral = Math.max(...departamentosGerais.map((item) => item.valor), 0)
+  const maiorVendaDepartamentoLoja = Math.max(...departamentosLoja.map((item) => item.valor), 0)
+
+  const percentualMetaCircle = Math.min(Math.max(resumo.percentualMeta, 0), 100)
+  const circumference = 289
+  const dashOffset = circumference - (circumference * percentualMetaCircle) / 100
 
   return (
     <div className="h-screen bg-primary text-textPrimary px-4 py-3 md:px-6 md:py-4 overflow-hidden pl-16">
@@ -132,11 +162,13 @@ function Dashboard() {
           VISÃO GERAL
         </h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-          <Card title="Venda Total" value="R$ 275.847.435" />
-          <Card title="Custo" value="R$ 175.847.435" />
-          <Card title="Ticket medio" value="7.543" />
-          <Card title="Qt. NF" value="18.484" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 mb-4">
+          <Card title="Venda Total" value={loading ? 'Carregando...' : formatMoney(resumo.totalVenda)} />
+          <Card title="Custo" value={loading ? 'Carregando...' : formatMoney(resumo.totalCusto)} />
+          <Card title="Ticket médio" value={loading ? 'Carregando...' : formatMoney(resumo.ticketMedio)} />
+          <Card title="Qt. NF" value={loading ? 'Carregando...' : formatNumber(resumo.totalNumVendas)} />
+          <Card title="Margem" value={loading ? 'Carregando...' : formatPercent(resumo.margem)} />
+          <Card title="Lucro" value={loading ? 'Carregando...' : formatMoney(resumo.totalLucro)} />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
@@ -146,21 +178,32 @@ function Dashboard() {
             </h2>
 
             <div className="space-y-2 overflow-y-auto pr-1">
-              {vendasPorLoja.map((item) => (
-                <div key={item.loja}>
-                  <div className="flex justify-between text-xs mb-1 gap-3">
-                    <span className="text-textPrimary truncate">{item.loja}</span>
-                    <span className="text-textSecondary">{item.valor}%</span>
-                  </div>
+              {vendasPorLoja.map((item) => {
+                const largura = maiorVendaLoja > 0 ? (item.valor / maiorVendaLoja) * 100 : 0
 
-                  <div className="w-full bg-hover rounded-full h-2">
-                    <div
-                      className="bg-accent h-2 rounded-full"
-                      style={{ width: `${item.valor}%` }}
-                    />
+                return (
+                  <div key={item.loja}>
+                    <div className="flex justify-between text-xs mb-1 gap-3">
+                      <span className="text-textPrimary truncate">Filial {item.loja}</span>
+                      <span className="text-textSecondary">
+                        {formatPercent(item.percentualCarregado)}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-hover rounded-full h-2">
+                      <div
+                        className="bg-accent h-2 rounded-full"
+                        style={{ width: `${largura}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-[10px] mt-1 text-textSecondary gap-2">
+                      <span>{formatMoney(item.valor)}</span>
+                      <span>Meta: {formatMoney(item.meta)}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -171,25 +214,32 @@ function Dashboard() {
 
             <div className="flex-1 overflow-x-auto overflow-y-hidden">
               <div className="flex items-end gap-3 h-full min-w-[560px]">
-                {departamentosGerais.map((dep) => (
-                  <div
-                    key={dep.nome}
-                    className="flex flex-col items-center justify-end h-full min-w-[58px]"
-                  >
-                    <div className="text-[10px] text-textSecondary mb-1">
-                      {dep.valor}k
-                    </div>
+                {departamentosGerais.map((dep) => {
+                  const altura =
+                    maiorVendaDepartamentoGeral > 0
+                      ? Math.max((dep.valor / maiorVendaDepartamentoGeral) * 170, 8)
+                      : 8
 
+                  return (
                     <div
-                      className="w-7 rounded-t-lg bg-accent/90"
-                      style={{ height: `${dep.valor * 0.8}px` }}
-                    />
+                      key={dep.nome}
+                      className="flex flex-col items-center justify-end h-full min-w-[58px]"
+                    >
+                      <div className="text-[10px] text-textSecondary mb-1">
+                        {formatNumber(dep.valor)}
+                      </div>
 
-                    <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
-                      {dep.nome}
+                      <div
+                        className="w-7 rounded-t-lg bg-accent/90"
+                        style={{ height: `${altura}px` }}
+                      />
+
+                      <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
+                        {dep.nome}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -218,28 +268,32 @@ function Dashboard() {
                     stroke="#e94560"
                     strokeWidth="10"
                     strokeLinecap="round"
-                    strokeDasharray={289}
-                    strokeDashoffset={289 - (289 * 78) / 100}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
                   />
                 </svg>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-textPrimary">78%</span>
-                  <span className="text-[11px] text-textSecondary mt-1">da meta</span>
+                  <span className="text-2xl font-bold text-textPrimary">
+                    {formatPercent(resumo.percentualMeta)}
+                  </span>
+                
                 </div>
               </div>
             </div>
 
             <div className="text-center">
-              <p className="text-xs text-textSecondary">Meta: R$ 320.000</p>
-              <p className="text-sm font-semibold text-textPrimary">Venda: R$ 249.600</p>
+              <p className="text-xs text-textSecondary">Meta: {formatMoney(resumo.totalMeta)}</p>
+              <p className="text-sm font-semibold text-textPrimary">
+                Venda: {formatMoney(resumo.totalVenda)}
+              </p>
             </div>
           </div>
 
           <div className="bg-secondary p-3 rounded-2xl xl:col-span-2 h-[260px] flex flex-col">
             <div className="flex items-center justify-between mb-2 gap-3">
               <h2 className="text-textSecondary text-sm">
-                Venda por Departamento - {lojaSelecionada}
+                Venda por Departamento - Filial {lojaSelecionada || '-'}
               </h2>
 
               <select
@@ -247,9 +301,9 @@ function Dashboard() {
                 onChange={(e) => setLojaSelecionada(e.target.value)}
                 className="bg-hover text-textPrimary border border-white/10 rounded-lg px-3 py-1.5 outline-none text-xs w-[150px]"
               >
-                {Object.keys(departamentosPorLoja).map((loja) => (
+                {filiais.map((loja) => (
                   <option key={loja} value={loja}>
-                    {loja}
+                    Filial {loja}
                   </option>
                 ))}
               </select>
@@ -257,25 +311,32 @@ function Dashboard() {
 
             <div className="flex-1 overflow-x-auto overflow-y-hidden">
               <div className="flex items-end gap-3 h-full min-w-[560px]">
-                {departamentos.map((dep) => (
-                  <div
-                    key={dep.nome}
-                    className="flex flex-col items-center justify-end h-full min-w-[58px]"
-                  >
-                    <div className="text-[10px] text-textSecondary mb-1">
-                      {dep.valor}k
-                    </div>
+                {departamentosLoja.map((dep) => {
+                  const altura =
+                    maiorVendaDepartamentoLoja > 0
+                      ? Math.max((dep.valor / maiorVendaDepartamentoLoja) * 170, 8)
+                      : 8
 
+                  return (
                     <div
-                      className="w-7 rounded-t-lg bg-accent/90"
-                      style={{ height: `${dep.valor * 0.8}px` }}
-                    />
+                      key={dep.nome}
+                      className="flex flex-col items-center justify-end h-full min-w-[58px]"
+                    >
+                      <div className="text-[10px] text-textSecondary mb-1">
+                        {formatNumber(dep.valor)}
+                      </div>
 
-                    <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
-                      {dep.nome}
+                      <div
+                        className="w-7 rounded-t-lg bg-accent/90"
+                        style={{ height: `${altura}px` }}
+                      />
+
+                      <div className="text-[10px] text-textSecondary mt-2 text-center leading-tight">
+                        {dep.nome}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
