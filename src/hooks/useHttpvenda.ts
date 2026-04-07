@@ -9,7 +9,7 @@ export function useHttpvenda() {
   const getVenda = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<GetVendaMesAtual[]>("http://localhost:3333/adm/bi");
+      const response = await axios.get<GetVendaMesAtual[]>("https://api.devbr.site/adm/bi");
       setData(response.data);
       return response.data;
     } catch (err: any) {
