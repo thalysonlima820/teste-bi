@@ -31,11 +31,7 @@ export function useHttpvenda() {
   const getVenda = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<GetVendaMesAtual[]>(`${API}/bi`, {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      });
+      const response = await axios.get(`${API}/bi`);
       setData(response.data);
       return response.data;
     } catch (err: any) {
@@ -56,8 +52,7 @@ export function useHttpvenda() {
       const dataFimFormatada = formatDateOracle(datafim);
 
       const response = await axios.get<GetVendaMesAtual[]>(
-        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`,
-      );
+        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`,);
 
       setData(response.data);
       return response.data;

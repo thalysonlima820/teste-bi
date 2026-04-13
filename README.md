@@ -74,6 +74,11 @@ export default defineConfig([
 ])
 ```
 
+no servidor roda isso
+npx ngrok config add-authtoken 2PyY81qb4pMYTeBbt40pqMb0zm7_5NwhXqNbyuPmpTPG641oz
 
+depois isso
 npm run start:dev
+
+e isso emoutro ternibnal
 npx ngrok http http://localhost:3333
