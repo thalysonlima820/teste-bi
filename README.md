@@ -73,3 +73,7 @@ export default defineConfig([
   },
 ])
 ```
+
+
+npm run start:dev
+npx ngrok http http://localhost:3333
