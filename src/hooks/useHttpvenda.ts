@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
 
-const API = import.meta.env.VITE_API || "/api";
+const API = "/.netlify/functions/proxy";
 
 const formatDateOracle = (date: string) => {
   const meses: Record<string, string> = {
