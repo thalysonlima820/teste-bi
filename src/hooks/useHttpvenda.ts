@@ -31,9 +31,11 @@ export function useHttpvenda() {
   const getVenda = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<GetVendaMesAtual[]>(
-        `${API}/bi`,
-      );
+      const response = await axios.get<GetVendaMesAtual[]>(`${API}/bi`, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
       setData(response.data);
       return response.data;
     } catch (err: any) {
