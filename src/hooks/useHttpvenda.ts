@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
+const API = import.meta.env.VITE_API;
 
 const formatDateOracle = (date: string) => {
   const meses: Record<string, string> = {
@@ -31,7 +32,7 @@ export function useHttpvenda() {
     try {
       setLoading(true);
       const response = await axios.get<GetVendaMesAtual[]>(
-        "https://api.devbr.site/adm/bi",
+        `${API}/bi`,
       );
       setData(response.data);
       return response.data;
@@ -53,7 +54,7 @@ export function useHttpvenda() {
       const dataFimFormatada = formatDateOracle(datafim);
 
       const response = await axios.get<GetVendaMesAtual[]>(
-        `https://api.devbr.site/adm/bi/${dataInicioFormatada}/${dataFimFormatada}`,
+        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`,
       );
 
       setData(response.data);
