@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
+
 const API = import.meta.env.VITE_API;
 
 const formatDateOracle = (date: string) => {
@@ -24,6 +25,12 @@ const formatDateOracle = (date: string) => {
   return `${dia}-${meses[mes]}-${ano}`;
 };
 
+const normalizarLista = (payload: any): GetVendaMesAtual[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
+
 export function useHttpvenda() {
   const [data, setData] = useState<GetVendaMesAtual[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,13 +38,17 @@ export function useHttpvenda() {
   const getVenda = async () => {
     try {
       setLoading(true);
+
       const response = await axios.get(`${API}/bi`);
-      setData(response.data);
-      return response.data;
+      const lista = normalizarLista(response.data);
+
+      setData(lista);
+      return lista;
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err?.message || "Erro ao buscar dados";
       console.log(message);
+      setData([]);
       throw err;
     } finally {
       setLoading(false);
@@ -51,16 +62,20 @@ export function useHttpvenda() {
       const dataInicioFormatada = formatDateOracle(datainicio);
       const dataFimFormatada = formatDateOracle(datafim);
 
-      const response = await axios.get<GetVendaMesAtual[]>(
-        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`,);
+      const response = await axios.get(
+        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`
+      );
 
-      setData(response.data);
-      return response.data;
+      const lista = normalizarLista(response.data);
+
+      setData(lista);
+      return lista;
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err?.message || "Erro ao buscar dados";
 
       console.log(message);
+      setData([]);
       throw err;
     } finally {
       setLoading(false);
