@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useHttpvenda } from '../hooks/useHttpvenda'
 import type { GetVendaMesAtual } from '../interface/GetVendaMesAtual'
 
@@ -181,10 +181,7 @@ function CardComparativoHorizontal({
 }
 
 const agruparPorFilial = (dados: GetVendaMesAtual[]) => {
-  const mapa = new Map<
-    string,
-    { nome: string; venda: number; nf: number }
-  >()
+  const mapa = new Map<string, { nome: string; venda: number; nf: number }>()
 
   dados.forEach((item) => {
     const chave = item.CODFILIAL
@@ -204,10 +201,7 @@ const agruparPorFilial = (dados: GetVendaMesAtual[]) => {
 }
 
 const agruparPorDepartamento = (dados: GetVendaMesAtual[], filial?: string) => {
-  const mapa = new Map<
-    string,
-    { nome: string; valor: number }
-  >()
+  const mapa = new Map<string, { nome: string; valor: number }>()
 
   dados
     .filter((item) => {
@@ -234,23 +228,44 @@ const ComparativoVenda = () => {
   const [data1Fim, setData1Fim] = useState('2026-03-15')
   const [data2Inicio, setData2Inicio] = useState('2026-03-16')
   const [data2Fim, setData2Fim] = useState('2026-03-31')
+  const [erroDatas, setErroDatas] = useState('')
 
   const periodo1 = useHttpvenda()
   const periodo2 = useHttpvenda()
 
-  useEffect(() => {
-    if (data1Inicio && data1Fim) {
-      periodo1.getVendaData(data1Inicio, data1Fim)
-    }
-  }, [data1Inicio, data1Fim])
-
-  useEffect(() => {
-    if (data2Inicio && data2Fim) {
-      periodo2.getVendaData(data2Inicio, data2Fim)
-    }
-  }, [data2Inicio, data2Fim])
-
   const loading = periodo1.loading || periodo2.loading
+
+  const validarDatas = () => {
+    if (!data1Inicio || !data1Fim || !data2Inicio || !data2Fim) {
+      return 'Preencha as 4 datas antes de pesquisar.'
+    }
+
+    if (data1Inicio > data1Fim) {
+      return 'No Período 1, a data inicial não pode ser maior que a final.'
+    }
+
+    if (data2Inicio > data2Fim) {
+      return 'No Período 2, a data inicial não pode ser maior que a final.'
+    }
+
+    return ''
+  }
+
+  const handlePesquisar = async () => {
+    const erro = validarDatas()
+    setErroDatas(erro)
+
+    if (erro) return
+
+    try {
+      await Promise.all([
+        periodo1.getVendaData(data1Inicio, data1Fim),
+        periodo2.getVendaData(data2Inicio, data2Fim),
+      ])
+    } catch (error) {
+      console.error('Erro ao buscar comparativo:', error)
+    }
+  }
 
   const lojasPeriodo1 = useMemo(() => agruparPorFilial(periodo1.data), [periodo1.data])
   const lojasPeriodo2 = useMemo(() => agruparPorFilial(periodo2.data), [periodo2.data])
@@ -268,10 +283,7 @@ const ComparativoVenda = () => {
   }, [lojasPeriodo1, lojasPeriodo2])
 
   const dadosVenda = useMemo(() => {
-    const mapa = new Map<
-      string,
-      { nome: string; valor1: number; valor2: number }
-    >()
+    const mapa = new Map<string, { nome: string; valor1: number; valor2: number }>()
 
     lojasPeriodo1.forEach((item) => {
       mapa.set(item.nome, {
@@ -302,10 +314,7 @@ const ComparativoVenda = () => {
   }, [lojasPeriodo1, lojasPeriodo2, lojaSelecionada])
 
   const dadosNf = useMemo(() => {
-    const mapa = new Map<
-      string,
-      { nome: string; valor1: number; valor2: number }
-    >()
+    const mapa = new Map<string, { nome: string; valor1: number; valor2: number }>()
 
     lojasPeriodo1.forEach((item) => {
       mapa.set(item.nome, {
@@ -336,10 +345,7 @@ const ComparativoVenda = () => {
   }, [lojasPeriodo1, lojasPeriodo2, lojaSelecionada])
 
   const dadosTicket = useMemo(() => {
-    const mapa = new Map<
-      string,
-      { nome: string; valor1: number; valor2: number }
-    >()
+    const mapa = new Map<string, { nome: string; valor1: number; valor2: number }>()
 
     const nomes = new Set([
       ...lojasPeriodo1.map((item) => item.nome),
@@ -376,10 +382,7 @@ const ComparativoVenda = () => {
       lojaSelecionada === 'Todas' ? undefined : lojaSelecionada
     )
 
-    const mapa = new Map<
-      string,
-      { nome: string; valor1: number; valor2: number }
-    >()
+    const mapa = new Map<string, { nome: string; valor1: number; valor2: number }>()
 
     dep1.forEach((item) => {
       mapa.set(item.nome, {
@@ -488,6 +491,23 @@ const ComparativoVenda = () => {
                 className="bg-hover text-textPrimary border border-white/10 rounded-xl px-3 py-2 outline-none text-sm"
               />
             </div>
+          </div>
+
+          <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <button
+              type="button"
+              onClick={handlePesquisar}
+              disabled={loading}
+              className="bg-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2 text-sm font-semibold transition-all"
+            >
+              {loading ? 'Pesquisando...' : 'Pesquisar'}
+            </button>
+
+            {erroDatas && (
+              <div className="text-sm text-red-400">
+                {erroDatas}
+              </div>
+            )}
           </div>
         </div>
 
