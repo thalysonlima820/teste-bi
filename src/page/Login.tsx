@@ -80,7 +80,7 @@ const Login = () => {
               Entrar
             </h1>
             <p className="mt-1 text-sm text-textPrimary/60">
-              Bem-vindo ao <span style={{ color: "var(--accent-color)" }}>AdmGestão</span>
+              Bem-vindo
             </p>
           </div>
 
@@ -103,7 +103,7 @@ const Login = () => {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               className="mt-1 w-full rounded-2xl px-4 py-3 bg-hover text-textPrimary outline-none border border-white/10 focus:border-white/20 focus:ring-2 focus:ring-white/10 disabled:opacity-60"
-              placeholder="adm"
+              
               autoFocus
               disabled={loading}
             />
@@ -116,7 +116,7 @@ const Login = () => {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               className="mt-1 w-full rounded-2xl px-4 py-3 bg-hover text-textPrimary outline-none border border-white/10 focus:border-white/20 focus:ring-2 focus:ring-white/10 disabled:opacity-60"
-              placeholder="adm"
+              
               disabled={loading}
             />
           </div>
