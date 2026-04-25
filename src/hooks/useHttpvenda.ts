@@ -31,6 +31,7 @@ const normalizarLista = (payload: any): GetVendaMesAtual[] => {
   return [];
 };
 
+
 export function useHttpvenda() {
   const [data, setData] = useState<GetVendaMesAtual[]>([]);
   const [loading, setLoading] = useState(false);
