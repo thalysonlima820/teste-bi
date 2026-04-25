@@ -2,9 +2,10 @@ import { useState } from "react";
 import axios from "axios";
 import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
 import { useAuth } from "../auth/useAuth";
+import { decryptApiResponse } from "../crypto/decrypt";
 
 const API = "/.netlify/functions/proxy";
-//const APITeste = "http://localhost:3333/adm";
+//const ApiTeste = 'http://localhost:3333/adm'
 
 const formatDateOracle = (date: string) => {
   const meses: Record<string, string> = {
@@ -23,13 +24,15 @@ const formatDateOracle = (date: string) => {
   };
 
   const [ano, mes, dia] = date.split("-");
-
   return `${dia}-${meses[mes]}-${ano}`;
 };
 
-const normalizarLista = (payload: any): GetVendaMesAtual[] => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
+const normalizarLista = async (payload: any): Promise<GetVendaMesAtual[]> => {
+  const dados = await decryptApiResponse<any>(payload);
+
+  if (Array.isArray(dados)) return dados;
+  if (Array.isArray(dados?.data)) return dados.data;
+
   return [];
 };
 
@@ -56,8 +59,8 @@ export function useHttpvenda() {
         },
       });
 
-      const lista = normalizarLista(response.data);
-
+      const lista = await normalizarLista(response.data);
+      console.log(lista)
       setData(lista);
       return lista;
     } catch (err: any) {
@@ -100,11 +103,16 @@ export function useHttpvenda() {
         },
       );
 
-      const lista = normalizarLista(response.data);
+      const lista = await normalizarLista(response.data);
 
       setData(lista);
       return lista;
     } catch (err: any) {
+      if (err?.response?.status === 401) {
+        logout();
+        return;
+      }
+
       const message =
         err?.response?.data?.message || err?.message || "Erro ao buscar dados";
 
