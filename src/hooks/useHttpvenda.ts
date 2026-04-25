@@ -1,8 +1,10 @@
 import { useState } from "react";
 import axios from "axios";
 import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
+import { useAuth } from "../auth/useAuth";
 
 const API = "/.netlify/functions/proxy";
+//const APITeste = "http://localhost:3333/adm";
 
 const formatDateOracle = (date: string) => {
   const meses: Record<string, string> = {
@@ -35,18 +37,38 @@ export function useHttpvenda() {
   const [data, setData] = useState<GetVendaMesAtual[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const { user, logout } = useAuth();
+
   const getVenda = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get(`${API}/bi`);
+      const token = user?.token;
+
+      if (!token) {
+        logout();
+        return;
+      }
+
+      const response = await axios.get(`${API}/bi`, {
+        headers: {
+          admgestao: token,
+        },
+      });
+
       const lista = normalizarLista(response.data);
 
       setData(lista);
       return lista;
     } catch (err: any) {
+      if (err?.response?.status === 401) {
+        logout();
+        return;
+      }
+
       const message =
         err?.response?.data?.message || err?.message || "Erro ao buscar dados";
+
       console.log(message);
       setData([]);
       throw err;
@@ -59,11 +81,23 @@ export function useHttpvenda() {
     try {
       setLoading(true);
 
+      const token = user?.token;
+
+      if (!token) {
+        logout();
+        return;
+      }
+
       const dataInicioFormatada = formatDateOracle(datainicio);
       const dataFimFormatada = formatDateOracle(datafim);
 
       const response = await axios.get(
-        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`
+        `${API}/bi/${dataInicioFormatada}/${dataFimFormatada}`,
+        {
+          headers: {
+            admgestao: token,
+          },
+        },
       );
 
       const lista = normalizarLista(response.data);

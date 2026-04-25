@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useHttpvenda } from '../hooks/useHttpvenda'
 
+
 type CardProps = {
   title: string
   value: string
