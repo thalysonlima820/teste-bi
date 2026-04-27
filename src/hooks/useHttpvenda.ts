@@ -56,6 +56,7 @@ export function useHttpvenda() {
       const response = await axios.get(`${API}/bi`, {
         headers: {
           admgestao: token,
+          "ngrok-skip-browser-warning": "true",
         },
       });
 
@@ -99,6 +100,7 @@ export function useHttpvenda() {
         {
           headers: {
             admgestao: token,
+            "ngrok-skip-browser-warning": "true",
           },
         },
       );
