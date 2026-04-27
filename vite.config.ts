@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
@@ -8,14 +8,29 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'https://6978-51-79-105-93.ngrok-free.app',
+      "/api": {
+        target: "https://6978-51-79-105-93.ngrok-free.app",
         changeOrigin: true,
         secure: true,
         headers: {
-          'ngrok-skip-browser-warning': 'true',
+          "ngrok-skip-browser-warning": "true",
         },
-        rewrite: (path) => path.replace(/^\/api/, '/adm'),
+        rewrite: (path) => path.replace(/^\/api/, "/adm"),
+
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq, req: any) => {
+            const token = req.headers["admgestao"];
+
+            if (token) {
+              proxyReq.setHeader("admgestao", token);
+            }
+
+            proxyReq.setHeader(
+              "ngrok-skip-browser-warning",
+              "true"
+            );
+          });
+        },
       },
     },
   },
