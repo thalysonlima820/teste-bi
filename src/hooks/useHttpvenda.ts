@@ -64,6 +64,7 @@ export function useHttpvenda() {
       setData(lista);
       return lista;
     } catch (err: any) {
+      logout();
       if (err?.response?.status === 401) {
         logout();
         return;
@@ -109,6 +110,7 @@ export function useHttpvenda() {
       setData(lista);
       return lista;
     } catch (err: any) {
+      logout();
       if (err?.response?.status === 401) {
         logout();
         return;
