@@ -4,7 +4,7 @@ import type { GetVendaMesAtual } from "../interface/GetVendaMesAtual";
 import { useAuth } from "../auth/useAuth";
 import { decryptApiResponse } from "../crypto/decrypt";
 
-const API = "/.netlify/functions/proxy";
+const API = "/api";
 
 const formatDateOracle = (date: string) => {
   const meses: Record<string, string> = {
