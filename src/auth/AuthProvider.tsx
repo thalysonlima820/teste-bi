@@ -27,7 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
        if (
         data?.usuario.CODUSUARIO !== '9999' &&
-        data?.usuario.CODUSUARIO !== '125'
+        data?.usuario.CODUSUARIO !== '125' &&
+        data?.usuario.CODUSUARIO !== '7777'
       ) {
         return { ok: false, error: "Usuario Sem Permissao." };
       }
