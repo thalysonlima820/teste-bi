@@ -25,6 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken = data?.accessToken ?? data?.token;
       const usuario = data?.usuario ?? {};
 
+       if (
+        data?.usuario.CODUSUARIO !== '9999' &&
+        data?.usuario.CODUSUARIO !== '125'
+      ) {
+        return { ok: false, error: "Usuario Sem Permissao." };
+      }
+
       if (!accessToken) {
         return { ok: false, error: "Token não retornado pela API." };
       }
