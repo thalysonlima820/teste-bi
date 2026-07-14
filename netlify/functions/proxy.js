@@ -1,7 +1,7 @@
 export async function handler(event) {
   const path = event.path.replace('/.netlify/functions/proxy', '');
 
-  const url = `https://5f2f-51-79-105-93.ngrok-free.app/adm${path}`;
+  const url = `https://2b94-51-79-105-93.ngrok-free.app/adm${path}`;
 
   const token =
     event.headers.admgestao ||

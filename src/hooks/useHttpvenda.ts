@@ -26,7 +26,6 @@ const formatDateOracle = (date: string) => {
   const [ano, mes, dia] = date.split("-");
   return `${dia}-${meses[mes]}-${ano}`;
 };
-
 const normalizarLista = async (payload: any): Promise<GetVendaMesAtual[]> => {
   const dados = await decryptApiResponse<any>(payload);
 
