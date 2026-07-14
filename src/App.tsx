@@ -1,9 +1,10 @@
-import { Home, BarChart3, LogOut } from "lucide-react";
+import { Home, BarChart3, LogOut, PackageSearch} from "lucide-react";
 import { Link, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Dashboard from "./page/Dashboard";
 import Login from "./page/Login";
 import ComparativoVenda from "./page/ComparativoVenda";
 import { useAuth } from "./auth/useAuth";
+import VendaProdutoTop from "./page/VendaProdutoTop";
 
 function Sidebar() {
   const { logout } = useAuth();
@@ -21,6 +22,13 @@ function Sidebar() {
         className="w-9 h-9 rounded-xl hover:bg-accent/20 text-textPrimary flex items-center justify-center transition"
       >
         <BarChart3 size={18} />
+      </Link>
+
+      <Link
+        to="/VendaProdutoTop"
+        className="w-9 h-9 rounded-xl hover:bg-accent/20 text-textPrimary flex items-center justify-center transition"
+      >
+        <PackageSearch size={18} />
       </Link>
 
       <button onClick={() => logout()} className="w-9 h-9 rounded-xl hover:bg-accent/20 text-red-800 flex items-center justify-center transition">
@@ -67,6 +75,14 @@ function App() {
           element={
             <RequireAuth>
               <ComparativoVenda />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/VendaProdutoTop"
+          element={
+            <RequireAuth>
+              <VendaProdutoTop />
             </RequireAuth>
           }
         />
